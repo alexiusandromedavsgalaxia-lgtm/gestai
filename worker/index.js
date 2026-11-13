@@ -131,6 +131,15 @@ export default {
     await notify(env,c.id,{type:"handoff",status:"transferred",operator_id:target.id});
     return response({handoff:{id:h.id,expires_at:h.expires_at,operator_id:target.id,context:snapshot.results.reverse()}},201,request,env);
    }
+   if(path==="/api/transcribe"&&request.method==="POST"){
+    if(!env.AI)return response({error:"La transcripción no está activada en este despliegue."},503,request,env);
+    const form=await request.formData(),audio=form.get("audio");
+    if(!audio||typeof audio==="string"||!audio.type.startsWith("audio/"))return response({error:"Selecciona un archivo de audio."},400,request,env);
+    if(audio.size>Number(env.MAX_UPLOAD_BYTES||26214400))return response({error:"El audio supera el límite permitido."},413,request,env);
+    const bytes=[...new Uint8Array(await audio.arrayBuffer())];
+    const result=await env.AI.run("@cf/openai/whisper",{audio:bytes});
+    return response({text:result.text||"",segments:result.segments||[]},200,request,env);
+   }
    if(path==="/api/uploads"&&request.method==="POST"){
     if(!env.FILES)return response({error:"El almacenamiento R2 no está configurado."},503,request,env);
     const form=await request.formData(),file=form.get("file"),conversationId=String(form.get("conversation_id")||"");
