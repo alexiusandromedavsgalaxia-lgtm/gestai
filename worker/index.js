@@ -120,7 +120,7 @@ export default {
    const presence=path.match(/^\/api\/conversations\/([\w-]+)\/presence$/);
    if(presence&&request.method==="PATCH"){
     const c=await allowedConversation(env,user,presence[1]);if(!c)return response({error:"Conversación no encontrada."},404,request,env);
-    if(user.role!=="operator"&&user.id!==c.operator_id)return response({error:"Solo un operador puede cambiar su disponibilidad."},403,request,env);
+    const owner=await env.DB.prepare("SELECT owner_id FROM identities WHERE id=?").bind(c.identity_id).first();if(user.role!=="operator"&&user.role!=="admin"&&user.id!==c.operator_id&&user.id!==owner?.owner_id)return response({error:"Solo el operador asignado puede cambiar su disponibilidad."},403,request,env);
     const b=await request.json(),status=b.status==="offline"?"waiting":"open";
     await env.DB.prepare("UPDATE conversations SET status=?,updated_at=datetime('now') WHERE id=?").bind(status,c.id).run();
     await notify(env,c.id,{type:"presence",status:b.status||"online"});
@@ -129,7 +129,7 @@ export default {
    const handoff=path.match(/^\/api\/conversations\/([\w-]+)\/handoff$/);
    if(handoff&&request.method==="POST"){
     const c=await allowedConversation(env,user,handoff[1]);if(!c)return response({error:"Conversación no encontrada."},404,request,env);
-    if(user.role!=="operator"&&user.id!==c.operator_id)return response({error:"Solo el operador actual puede iniciar el relevo."},403,request,env);
+    const owner=await env.DB.prepare("SELECT owner_id FROM identities WHERE id=?").bind(c.identity_id).first();if(user.role!=="operator"&&user.role!=="admin"&&user.id!==c.operator_id&&user.id!==owner?.owner_id)return response({error:"Solo el operador actual puede iniciar el relevo."},403,request,env);
     const b=await request.json(),snapshot=await env.DB.prepare("SELECT u.display_name,m.body,m.created_at FROM messages m JOIN users u ON u.id=m.sender_id WHERE m.conversation_id=? ORDER BY m.created_at DESC LIMIT 100").bind(c.id).all();
     const target=await env.DB.prepare("SELECT id FROM users WHERE role='operator' AND id<>? ORDER BY created_at LIMIT 1").bind(user.id).first();
     if(!target)return response({error:"No hay otro operador disponible. La conversación sigue asignada."},409,request,env);
