@@ -70,3 +70,12 @@ CREATE TABLE IF NOT EXISTS sessions (
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
+
+CREATE TABLE IF NOT EXISTS websocket_tickets (
+ token_hash TEXT PRIMARY KEY,
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+ expires_at TEXT NOT NULL,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_ws_tickets_expiry ON websocket_tickets(expires_at);
