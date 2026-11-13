@@ -93,3 +93,21 @@ npm run cf:dev
 - The context-capacity number is a product setting, not a live token counter or a promise that a person can absorb that many tokens. Humans review conversation history directly.
 - The seven-minute handoff value is a review deadline, not a guarantee that a person can learn every detail in that time.
 - This repository is an operational MVP foundation, not a finished commercial SaaS: payments, paid plan enforcement, email verification, password reset, account deletion, abuse reporting, moderation, rate limiting, operator scheduling/presence, and production observability still need to be added before a public launch.
+
+
+## Supabase OAuth consent screen
+
+GestAI includes a consent UI for Supabase Auth's OAuth 2.1 server at both `/amst` and the conventional `/oauth/consent` path. The page reads the `authorization_id` query parameter, asks the user to sign in with Google when no Supabase session exists, displays the requesting client's name/site and requested scopes, and calls Supabase's approve/deny methods before redirecting to the returned URL.
+
+### Configure the hosted Supabase project
+
+1. Copy `.env.example` to `.env.local` for local development and set:
+   - `VITE_SUPABASE_URL`: the project URL.
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`: the publishable key (never use a secret/service-role key in frontend variables).
+2. Install dependencies with `npm install` and run `npm run dev`.
+3. In Supabase Dashboard, enable Authentication > OAuth Server and set the Authorization Path to `/amst` (or `/oauth/consent`).
+4. Set the Supabase Authentication Site URL to the deployed GestAI origin, and add the deployed origin plus the consent return URL pattern to the Auth redirect URL allowlist.
+5. Enable Google under Authentication > Sign In / Providers and configure its Google OAuth client credentials and callback URL in Supabase.
+6. Deploy the rebuilt frontend. The OAuth server sends users to the selected path with `?authorization_id=...`.
+
+The consent page requires an authenticated Supabase Auth session. GestAI's existing legacy Worker login is separate until the broader authentication migration is completed; signing in with Google on this consent page creates/uses the Supabase Auth session required by the OAuth server.
