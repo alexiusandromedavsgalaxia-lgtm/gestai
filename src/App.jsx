@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Activity, ArrowLeft, Check, ChevronDown, FileImage, Info, MessageSquare, MoreHorizontal, Paperclip, Plus, Send, ShieldCheck, Sparkles, Users, X } from "lucide-react";
 
 const seed = [
-  {id:1, role:"client", text:"Hola, Nora. Estoy probando GestAI. ¿Puedes ayudarme a organizar unas ideas para un proyecto?", time:"17:42"},
+  {id:1, role:"client", text:"Hola, Nora. Estoy probando GestAI. ¿Puedes ayudarme a organizar unas ideas para un proyecto?", time:"17:42",answered:true},
   {id:2, role:"operator", text:"¡Claro! Cuéntame qué tienes en mente y vamos dándole forma paso a paso.", time:"17:43"}
 ];
 
