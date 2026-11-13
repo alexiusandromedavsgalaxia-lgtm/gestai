@@ -1,0 +1,29 @@
+name = "gestai-api"
+main = "worker/index.js"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+[vars]
+APP_ORIGIN = "http://localhost:5173"
+SESSION_TTL_SECONDS = "2592000"
+MAX_UPLOAD_BYTES = "26214400"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gestai-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "gestai-uploads"
+
+[[durable_objects.bindings]]
+name = "CHAT_ROOMS"
+class_name = "ChatRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChatRoom"]
+
+[site]
+bucket = "./dist"
