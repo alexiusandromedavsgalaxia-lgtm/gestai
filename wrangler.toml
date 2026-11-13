@@ -30,5 +30,5 @@ class_name = "ChatRoom"
 tag = "v1"
 new_sqlite_classes = ["ChatRoom"]
 
-[[ai]]
+[ai]
 binding = "AI"
