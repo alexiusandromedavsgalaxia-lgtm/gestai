@@ -57,6 +57,16 @@ export default {
     if(!user||!await verifyPassword(String(body.password||""),user.password_hash))return response({error:"Correo o contraseña incorrectos."},401,request,env);
     const token=await tokenFor(user,env);return response({token,user:{id:user.id,email:user.email,display_name:user.display_name,role:user.role}},200,request,env);
    }
+   const liveMatch=path.match(/^\\/api\\/conversations\\/([\\w-]+)\\/live$/);
+   if(liveMatch && request.headers.get("Upgrade")==="websocket"){
+    const wsToken=url.searchParams.get("token")||"";
+    const wsRequest=new Request(request,{headers:new Headers({"Authorization":"Bearer "+wsToken})});
+    const wsUser=await requireUser(wsRequest,env);
+    if(!wsUser)return new Response("Unauthorized",{status:401});
+    const wsConversation=await allowedConversation(env,wsUser,liveMatch[1]);
+    if(!wsConversation)return new Response("Not found",{status:404});
+    return room(env,liveMatch[1]).fetch("https://room/connect",{headers:{"Upgrade":"websocket"}});
+   }
    const user=await requireUser(request,env);
    if(!user)return response({error:"Inicia sesión para continuar."},401,request,env);
    if(path==="/api/me")return response({user},200,request,env);
@@ -84,7 +94,7 @@ export default {
    const convMatch=path.match(/^\/api\/conversations\/([\w-]+)$/);
    if(convMatch&&request.method==="GET"){
     const c=await allowedConversation(env,user,convMatch[1]);if(!c)return response({error:"Conversación no encontrada."},404,request,env);
-    const [identity,messages]=await Promise.all([env.DB.prepare("SELECT id,name,description,context_limit FROM identities WHERE id=?").bind(c.identity_id).first(),env.DB.prepare("SELECT m.id,m.sender_id,m.body,m.attachment_json,m.created_at,u.display_name,u.role FROM messages m JOIN users u ON u.id=m.sender_id WHERE m.conversation_id=? ORDER BY m.created_at ASC LIMIT 500").bind(c.id).all()]);
+    const [identity,messages]=await Promise.all([env.DB.prepare("SELECT id,owner_id,name,description,context_limit FROM identities WHERE id=?").bind(c.identity_id).first(),env.DB.prepare("SELECT m.id,m.sender_id,m.body,m.attachment_json,m.created_at,u.display_name,u.role FROM messages m JOIN users u ON u.id=m.sender_id WHERE m.conversation_id=? ORDER BY m.created_at ASC LIMIT 500").bind(c.id).all()]);
     return response({conversation:c,identity,messages:messages.results.map(m=>({...m,attachment:m.attachment_json?JSON.parse(m.attachment_json):null}))},200,request,env);
    }
    const msgMatch=path.match(/^\/api\/conversations\/([\w-]+)\/messages$/);
@@ -141,8 +151,8 @@ export default {
     const headers=new Headers();object.writeHttpMetadata(headers);headers.set("cache-control","private, no-store");return new Response(object.body,{headers});
    }
    if(path==="/api/operator/inbox"&&request.method==="GET"){
-    if(user.role!=="operator"&&user.role!=="admin")return response({error:"Acceso exclusivo para operadores."},403,request,env);
-    const rows=await env.DB.prepare("SELECT c.id,c.status,c.updated_at,i.name AS identity_name,u.display_name AS client_name,(SELECT body FROM messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_message FROM conversations c JOIN identities i ON i.id=c.identity_id JOIN users u ON u.id=c.client_id WHERE c.operator_id=? AND c.status<>'closed' ORDER BY c.updated_at DESC").bind(user.id).all();
+    
+    const rows=await env.DB.prepare("SELECT c.id,c.status,c.updated_at,i.name AS identity_name,u.display_name AS client_name,(SELECT body FROM messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_message FROM conversations c JOIN identities i ON i.id=c.identity_id JOIN users u ON u.id=c.client_id WHERE (c.operator_id=? OR i.owner_id=?) AND c.status<>'closed' ORDER BY c.updated_at DESC").bind(user.id,user.id).all();
     return response({inbox:rows.results},200,request,env);
    }
    if(path.startsWith("/api/"))return response({error:"Ruta no encontrada."},404,request,env);
