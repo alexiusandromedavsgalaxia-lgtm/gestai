@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import OAuthConsent from "./OAuthConsent.jsx";
 import { Activity, ArrowDown, ArrowLeft, ArrowRight, Archive, AudioLines, Check, CheckCheck, ChevronDown, CircleHelp, File, FileAudio, FileImage, FileVideo, Inbox, LogOut, Menu, MessageCircle, MoreHorizontal, Paperclip, Plus, Search, Send, Settings2, ShieldCheck, Sparkles, Users, X, Zap } from "lucide-react";
 
 const API="/api";
 const fmtDate=v=>new Date(v).toLocaleString("es-ES",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
 const fmtSize=n=>n<1024*1024?(n/1024).toFixed(0)+" KB":(n/1024/1024).toFixed(1)+" MB";
 function App(){
+ if (window.location.pathname === "/amst" || window.location.pathname === "/oauth/consent") return <OAuthConsent />;
  const [token,setToken]=useState(()=>localStorage.getItem("gestai_token")||"");
  const [user,setUser]=useState(null),[authMode,setAuthMode]=useState("login");
  const [authForm,setAuthForm]=useState({name:"",email:"",password:"",operator:false});
