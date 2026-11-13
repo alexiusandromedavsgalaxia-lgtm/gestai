@@ -57,14 +57,22 @@ export default {
     if(!user||!await verifyPassword(String(body.password||""),user.password_hash))return response({error:"Correo o contraseña incorrectos."},401,request,env);
     const token=await tokenFor(user,env);return response({token,user:{id:user.id,email:user.email,display_name:user.display_name,role:user.role}},200,request,env);
    }
+   const ticketMatch=path.match(/^\/api\/conversations\/([\w-]+)\/live-ticket$/);
+   if(ticketMatch&&request.method==="POST"){
+    const ticketUser=await requireUser(request,env);if(!ticketUser)return response({error:"Inicia sesión."},401,request,env);
+    const c=await allowedConversation(env,ticketUser,ticketMatch[1]);if(!c)return response({error:"Conversación no encontrada."},404,request,env);
+    const ticket=id()+id(),digest=await crypto.subtle.digest("SHA-256",enc.encode(ticket));
+    await env.DB.prepare("INSERT INTO websocket_tickets(token_hash,user_id,conversation_id,expires_at) VALUES(?,?,?,datetime('now','+60 seconds'))").bind(b64(digest),ticketUser.id,c.id).run();
+    return response({ticket},201,request,env);
+   }
    const liveMatch=path.match(/^\/api\/conversations\/([\w-]+)\/live$/);
-   if(liveMatch && request.headers.get("Upgrade")==="websocket"){
-    const wsToken=url.searchParams.get("token")||"";
-    const wsRequest=new Request(request,{headers:new Headers({"Authorization":"Bearer "+wsToken})});
-    const wsUser=await requireUser(wsRequest,env);
-    if(!wsUser)return new Response("Unauthorized",{status:401});
-    const wsConversation=await allowedConversation(env,wsUser,liveMatch[1]);
-    if(!wsConversation)return new Response("Not found",{status:404});
+   if(liveMatch&&request.headers.get("Upgrade")==="websocket"){
+    const ticket=url.searchParams.get("ticket")||"",digest=await crypto.subtle.digest("SHA-256",enc.encode(ticket));
+    const row=await env.DB.prepare("SELECT user_id,conversation_id FROM websocket_tickets WHERE token_hash=? AND conversation_id=? AND expires_at>datetime('now')").bind(b64(digest),liveMatch[1]).first();
+    if(!row)return new Response("Unauthorized",{status:401});
+    await env.DB.prepare("DELETE FROM websocket_tickets WHERE token_hash=?").bind(b64(digest)).run();
+    const wsUser=await env.DB.prepare("SELECT id,email,display_name,role FROM users WHERE id=?").bind(row.user_id).first();
+    const c=await allowedConversation(env,wsUser,liveMatch[1]);if(!c)return new Response("Not found",{status:404});
     return room(env,liveMatch[1]).fetch("https://room/connect",{headers:{"Upgrade":"websocket"}});
    }
    const user=await requireUser(request,env);
