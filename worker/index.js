@@ -57,7 +57,7 @@ export default {
     if(!user||!await verifyPassword(String(body.password||""),user.password_hash))return response({error:"Correo o contraseña incorrectos."},401,request,env);
     const token=await tokenFor(user,env);return response({token,user:{id:user.id,email:user.email,display_name:user.display_name,role:user.role}},200,request,env);
    }
-   const liveMatch=path.match(/^\\/api\\/conversations\\/([\\w-]+)\\/live$/);
+   const liveMatch=path.match(/^\/api\/conversations\/([\w-]+)\/live$/);
    if(liveMatch && request.headers.get("Upgrade")==="websocket"){
     const wsToken=url.searchParams.get("token")||"";
     const wsRequest=new Request(request,{headers:new Headers({"Authorization":"Bearer "+wsToken})});
@@ -71,7 +71,7 @@ export default {
    if(!user)return response({error:"Inicia sesión para continuar."},401,request,env);
    if(path==="/api/me")return response({user},200,request,env);
    if(path==="/api/identities"&&request.method==="GET"){
-    const rows=await env.DB.prepare("SELECT i.id,i.name,i.description,i.context_limit,i.is_public,u.display_name AS owner_name FROM identities i JOIN users u ON u.id=i.owner_id WHERE i.is_public=1 OR i.owner_id=? ORDER BY i.created_at DESC").bind(user.id).all();
+    const rows=await env.DB.prepare("SELECT i.id,i.owner_id,i.name,i.description,i.context_limit,i.is_public,u.display_name AS owner_name FROM identities i JOIN users u ON u.id=i.owner_id WHERE i.is_public=1 OR i.owner_id=? ORDER BY i.created_at DESC").bind(user.id).all();
     return response({identities:rows.results},200,request,env);
    }
    if(path==="/api/identities"&&request.method==="POST"){
@@ -81,7 +81,7 @@ export default {
     return response({identity},201,request,env);
    }
    if(path==="/api/conversations"&&request.method==="GET"){
-    const rows=await env.DB.prepare("SELECT c.id,c.status,c.updated_at,i.name AS identity_name,u.display_name AS operator_name,(SELECT body FROM messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_message FROM conversations c JOIN identities i ON i.id=c.identity_id LEFT JOIN users u ON u.id=c.operator_id WHERE c.client_id=? OR c.operator_id=? OR i.owner_id=? ORDER BY c.updated_at DESC").bind(user.id,user.id,user.id).all();
+    const rows=await env.DB.prepare("SELECT c.id,c.identity_id,c.status,c.updated_at,i.name AS identity_name,u.display_name AS operator_name,(SELECT body FROM messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) AS last_message FROM conversations c JOIN identities i ON i.id=c.identity_id LEFT JOIN users u ON u.id=c.operator_id WHERE c.client_id=? OR c.operator_id=? OR i.owner_id=? ORDER BY c.updated_at DESC").bind(user.id,user.id,user.id).all();
     return response({conversations:rows.results},200,request,env);
    }
    if(path==="/api/conversations"&&request.method==="POST"){
