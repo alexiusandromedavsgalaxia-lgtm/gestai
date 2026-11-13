@@ -1,0 +1,39 @@
+import { useMemo, useState } from "react";
+import { Activity, ArrowLeft, Check, ChevronDown, FileImage, Info, MessageSquare, MoreHorizontal, Paperclip, Plus, Send, ShieldCheck, Sparkles, Users, X } from "lucide-react";
+
+const seed = [
+  {id:1, role:"client", text:"Hola, Nora. Estoy probando GestAI. ¿Puedes ayudarme a organizar unas ideas para un proyecto?", time:"17:42"},
+  {id:2, role:"operator", text:"¡Claro! Cuéntame qué tienes en mente y vamos dándole forma paso a paso.", time:"17:43"}
+];
+
+export default function App() {
+  const [role,setRole]=useState("client");
+  const [messages,setMessages]=useState(seed);
+  const [draft,setDraft]=useState("");
+  const [reply,setReply]=useState("");
+  const [online,setOnline]=useState(true);
+  const [handoff,setHandoff]=useState(false);
+  const [notice,setNotice]=useState("");
+  const pending=useMemo(()=>messages.filter(m=>m.role==="client"&&!m.answered),[messages]);
+  const stamp=()=>new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
+  function send(e){e.preventDefault();if(!draft.trim())return;setMessages(p=>[...p,{id:Date.now(),role:"client",text:draft.trim(),time:stamp()}]);setDraft("");setNotice("Mensaje enviado al operador humano.");}
+  function answer(e){e.preventDefault();if(!reply.trim())return;setMessages(p=>[...p.map(m=>m.role==="client"&&!m.answered?{...m,answered:true}:m),{id:Date.now(),role:"operator",text:reply.trim(),time:stamp()}]);setReply("");setNotice("Respuesta enviada a la conversación.");}
+  return <div className="shell">
+    <aside className="sidebar"><a className="brand"><span className="brand-icon"><Sparkles size={19}/></span>gest<span>ai</span></a><button className="new" onClick={()=>{setMessages([]);setNotice("Nueva conversación de demostración.");}}><Plus size={16}/> Nueva conversación</button><div className="section-label">ESPACIO DE TRABAJO</div><button className="nav active"><MessageSquare size={17}/> Conversación actual</button><button className="nav" onClick={()=>setNotice("El historial estará disponible al implementar las cuentas.")}>◷　Historial</button><div className="side-bottom"><div className="privacy"><ShieldCheck size={17}/> Esta experiencia está atendida por personas reales, no por una IA automática.</div><div className="profile"><div className="avatar">A</div><div><b>Tu espacio</b><small>Cuenta de demostración</small></div></div></div></aside>
+    <main className="main"><header className="top"><div className="crumb">Conversaciones <i>/</i> <b>Con Nora</b></div><div className="top-right"><span className="live-dot"/> Conexión de prueba <button className="icon-btn" onClick={()=>setNotice("GestAI simula una conversación entre dos personas.")}><Info size={18}/></button></div></header>
+      <section className="chat"><div className="chat-head"><div className="nora-avatar"><Sparkles size={20}/></div><div className="person"><h1>Nora</h1><small><span className="live-dot"/>{online?"Operadora disponible":"Operadora no disponible"}</small></div><button className="outline" onClick={()=>setHandoff(v=>!v)}><Users size={15}/>{handoff?"Ocultar relevo":"Simular relevo"}</button><button className="icon-btn"><MoreHorizontal/></button></div>
+      <div className="notice"><Info size={16}/><span><b>Modo demostración.</b> Los mensajes se intercambian entre dos paneles simulados. En producción, cada panel corresponderá a una persona distinta.</span></div>
+      <div className="messages">{messages.length===0&&<div className="empty"><MessageSquare size={28}/><h2>Empieza una conversación</h2><p>Escribe un mensaje para probar el flujo de GestAI.</p></div>}
+        {messages.map(m=><div className={"message "+(m.role==="client"?"mine":"theirs")} key={m.id}>{m.role==="operator"&&<div className="mini-avatar"><Sparkles size={13}/></div>}<div className="message-body"><div className="meta"><b>{m.role==="client"?"Tú":"Nora"}</b><span>{m.time}</span></div><div className="bubble">{m.text}</div>{m.role==="client"&&<small className="sent"><Check size={12}/> Enviado</small>}</div>{m.role==="client"&&<div className="mini-avatar you">A</div>}</div>)}
+        {!online&&<div className="offline">Operadora desconectada · error 502 simulado</div>}
+        {handoff&&<div className="handoff"><Users size={20}/><div><b>Relevo de operador en preparación</b><p>El siguiente operador recibiría el contexto autorizado y tendría hasta siete minutos para revisarlo.</p><div className="progress"><span/></div><small>Demostración visual, sin transferencia real.</small></div></div>}
+      </div>
+      <form className="composer" onSubmit={send}><button type="button" className="attach" onClick={()=>setNotice("La subida real de archivos se implementará con Cloudflare R2.")} title="Adjuntar archivo"><Paperclip size={19}/></button><input value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Escribe un mensaje..." aria-label="Escribe un mensaje"/><button className="send" disabled={!draft.trim()}><Send size={17}/></button></form><div className="composer-foot"><span><ShieldCheck size={13}/> Conversación atendida por una persona</span><span>GestAI · Demo 0.1</span></div>
+      </section>
+    </main>
+    <aside className="details"><div className="detail-title">DETALLES DE SESIÓN <MoreHorizontal size={17}/></div><div className="identity"><div className="identity-icon"><Sparkles size={22}/></div><h2>Nora</h2><p>Identidad de demostración</p><label><span className="live-dot"/> Activa</label></div><div className="detail-section"><h3>OPERADOR ASIGNADO</h3><div className="operator"><div className="avatar">N</div><div><b>Operador Nora</b><small>Persona real · modo demo</small></div></div></div><div className="detail-section"><h3>CONTEXTO DE CONVERSACIÓN</h3><div className="stat"><span>Mensajes</span><b>{messages.length}</b></div><div className="stat"><span>Archivos adjuntos</span><b>0</b></div><div className="stat"><span>Capacidad configurada</span><b>100k tokens</b></div><div className="context"><span/></div><small className="muted">Indicador conceptual. No mide tokens reales.</small></div><div className="detail-section"><h3>ESTADO DEL OPERADOR</h3><button className="availability" onClick={()=>setOnline(v=>!v)}><span className={online?"live-dot":"red-dot"}/>{online?"Disponible":"Desconectado"}<ChevronDown size={15}/></button><small className="muted">Cambia el estado para probar la indisponibilidad.</small></div><div className="detail-footer"><ShieldCheck size={16}/> La identidad es persistente; las respuestas las escriben operadores humanos.</div></aside>
+    {role==="operator"&&<div className="operator-screen"><header><div><small>PANEL DE OPERADOR</small><h2>Consola de Nora</h2></div><button className="icon-btn" onClick={()=>setRole("client")}><X/></button></header><div className="queue"><div className="queue-head"><b><Activity size={17}/> Bandeja de entrada</b><span>{pending.length} pendiente(s)</span></div>{pending.length?pending.map(m=><div className="incoming" key={m.id}><small>MENSAJE DE CLIENTE · {m.time}</small><p>{m.text}</p></div>):<div className="queue-empty"><Check/> No hay mensajes pendientes. Todo al día.</div>}<form onSubmit={answer}><textarea value={reply} onChange={e=>setReply(e.target.value)} placeholder="Escribe la respuesta como operador humano..."/><button className="send" disabled={!reply.trim()}><Send size={16}/> Responder</button></form></div><div className="operator-note"><ShieldCheck size={17}/> Eres una persona interpretando una identidad conversacional. No se genera ninguna respuesta automática.</div></div>}
+    <button className="role-switch" onClick={()=>setRole(r=>r==="client"?"operator":"client")}>{role==="client"?"↙ Abrir panel de operador":"← Volver al chat"}</button>
+    {notice&&<div className="toast" role="status">{notice}<button onClick={()=>setNotice("")}>×</button></div>}
+  </div>;
+}
