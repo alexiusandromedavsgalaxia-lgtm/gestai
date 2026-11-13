@@ -1,9 +1,9 @@
 {
   "name": "gestai",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
-  "scripts": {"dev":"vite","build":"vite build","preview":"vite preview"},
-  "dependencies": {"@vitejs/plugin-react":"latest","react":"latest","react-dom":"latest","lucide-react":"latest"},
-  "devDependencies": {"vite":"latest"}
+  "scripts": {"dev":"vite","build":"vite build","preview":"vite preview","cf:dev":"wrangler dev","cf:deploy":"wrangler deploy","db:init":"wrangler d1 execute gestai-db --local --file=./schema.sql","db:remote":"wrangler d1 execute gestai-db --remote --file=./schema.sql"},
+  "dependencies": {"@vitejs/plugin-react":"^4.3.4","lucide-react":"^0.468.0","react":"^18.3.1","react-dom":"^18.3.1"},
+  "devDependencies": {"vite":"^6.0.7","wrangler":"^3.99.0"}
 }
